@@ -74,8 +74,8 @@ FUNCTION
 PRECONDITION
   - The polynomial definite integral calculation happened.
   - hPoly
-Purpose:  Polynomial used in the calculation.
-	  Restrictions:  Handle to a valid polynomial object.
+      Purpose:  Polynomial used in the calculation.
+      Restrictions:  Handle to a valid polynomial object.
   - hPolyOrig
       Purpose:       Polynomial before the calculation happened.
       Restrictions:  Handle to a valid polynomial object and has at least one term.
