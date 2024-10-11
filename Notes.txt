@@ -1,0 +1,115 @@
+C Opaque Object Design
+  - The opaque object design pattern in C is a software design pattern wherein an interface is created for an object that allows for utilization of the object in any program while simultaneously protecting its data.
+    It is not equivalent to doing object oriented programming as this is not possible, but rather it is attempting to implement some of the features of object oriented programming, such as creating objects with classes and the member functions and data protection that comes with that, in a non-object oriented programming language like C.
+  - Every opaque object interface interacts with its object as an "opaque object" meaning a void pointer instead of a regular pointer.
+    A void pointer holds the address of something but its type is unknown.
+    These opaque object void pointers are also referred to as handles.
+    Since void pointers can't be dereferenced unlike regular pointers, then the internal components of the object can't be directly modified outside of the scope of the object's implementation file similar to how in object oriented programming member variables can only be directly accessed within the class's member functions.
+    Therefore, the only way to interact with the object is with the interface functions which are designed to always keep the object in a valid state, and as a result the object will never be in an invalid state and the integrity of its data is always protected.
+    Since opaque object's are void pointers which have an unknown type, it is a convention to typedef "void*" to the name of the object being represented in all caps so that the user of the interface can easily see which type of object it is even though from the perspective of the C language it's still a void pointer.
+  - The rules that determine what makes any given object valid is unique to every object and is based on what the data is supposed to represent.
+    For example, if there were an object to represent a date, it could store the day, month, and year as integers, and each of those variables has a restricted range of values that are valid for them such as 1 through 12 for the month.
+    The date opaque object interface would therefore be designed in such a way that the month could never be set to anything other than numbers in the range of 1 - 12.
+
+
+Preconditions and Postconditions
+  - Preconditions describe what is guaranteed to be true before a function is called and any other important information.
+    This includes information about the parameters including their purpose and any restrictions on their values.
+    It is therefore necessary to ensure the preconditions are adhered to before a function is called else errors could happen.
+  - In an opaque object interface's preconditions, it is common to see the phrase that "[variable] is a handle to a valid [type] object".
+    This means two important things: First, it means that it's assumed that the handle used with the function will always be for an object of that type.
+    However, if an object of a different type were used, the C language wouldn't be able to catch this error since it's still being used with a void pointer where the type is unknown so a type mismatch isn't caught.
+    Therefore, it's the responsibility of the user of the interface to ensure a handle to an object of a different type is never used with that function.
+    Second, it means that it's assumed the handle is not NULL and actually stores the address of an object, and it's assumed that the object is in a valid state.
+    This eliminates the need to have to check if the handle is NULL at the beginning of every function call, eliminates the need to have to account for the object being in an invalid state, and therefore everything that happens within the function happens with these assumptions.
+    However, once again it's a tradeoff, and it's the responsibility of the user of the interface to ensure that a NULL handle is never used with the function, and that the interface is designed so that the object could never be in an invalid state.
+  - Postconditions describe what happens as a result of the function being called.
+    This includes general information about what the function does, how any of the parameters are affected if at all, and the return value.
+
+
+
+
+Polynomial Opaque Object Interface
+  - The polynomial opaque object interface allows for the use of polynomials in any program.
+    It is designed so that the polynomial objects are always kept in a valid state.
+    A valid polynomial object adheres to the following rules:
+        1) The polynomial object contains an array of valid polynomial terms.
+             1.1) The pointer for the array is not NULL.
+             1.2) Each polynomial term is valid.
+                    1.2.1) The coefficient is a double and can be any double except for 0.
+                    1.2.2) The exponent is an integer and can be any integer.
+             1.3) There are no terms with the same exponent
+                    - For example, the polynomial 2x^2 + x^2 + 1 would be represented as 3x^2 + 1 in the polynomial object.
+        2) The polynomial object contains a size (number of terms).
+             2.1) The size is >= 0.
+        3) The polynomial object contains a capacity (the amount of terms the array can hold).
+             3.1) The capacity is >= 1.
+  - The polynomial object can only interact with strings that are valid polynomial strings.
+    Valid polynomial strings adhere to the following rules:
+        1) The polynomial string only contains valid polynomial components separated by valid whitespace.
+             1.1) Valid components are either valid terms or valid operators.
+                    1.1.1) Valid terms have the following form: [coefficient][-][x][^][exponent].
+                             - [coefficient] is any double and may or may not exist.
+                             - [-] is a special case for representing [coefficient] as -1 like -x and may or may not exist.
+                               If [coefficient] exists, [-] doesn't exist, and vice versa.
+                             - [x] can either be lowercase x or uppercase X and may or may not exist.
+                             - [^] is for raising [x] to an exponent and may or may not exist.
+                               If [x] doesn't exist, [^] doesn't exist, and vice versa.
+                             - [exponent] is any integer and may or may not exist.
+                               If [x] and [^] don't exist, exponent doesn't exist, and vice versa.
+                             - In summary, below is all of the possible forms:
+                                 - [coefficient]
+                                 - [coefficient][x]
+                                 - [coefficient][x][^][exponent]
+                                 - [-][x]
+                                 - [-][x][^][exponent]
+                                 - [x]
+                                 - [x][^][exponent]
+                              - Although the above rules accurately describe what makes a term valid, below is a list of some edge cases that are accounted for which might not be readily apparent from just reviewing the rules.
+                                 - Constant terms can be represented as just [coefficient] or x with an exponent of 0 like [coefficient][x][^][0], or [coefficient][x][^][-0].
+                                 - Coefficients of 1 can be represented as [1][x] or [x].
+                                 - Coefficients of -1 can be represented as [-1][x] or [-][x].
+                                 - Terms with an exponent of 1 can be represented as [x] or [x][^][1].
+                    1.1.2) Valid operators are the addition (+) and subtraction (-) operators.
+             1.2) Valid whitespace contains only space characters (no tab for example).
+        2) The first and last component must be a term.
+             - For example, "+ x^2 + x + 1" and "x^2 + x + 1 +" are invalid polynomials.
+        3) There can't be two consecutive terms or two consecutive operators.
+             - For example, "x^2 + x x + 1" and "x^2 + + x + 1 +" are invalid polynomials.
+  - The function poly_isValidPolyStr determines if any polynomial string is valid.
+    This one is being called out specifically because of its importance due to the fact that the whole polynomial interface is based on using valid polynomial strings.
+  - The only difference between a valid polynomial represented as a polynomial object vs. a polynomial string is that the polynomial string can contain terms with the same exponent whereas polynomial objects can't and combine them into one term as previously stated.
+
+
+
+
+Polynomial Calculation Rules
+  - X-value
+      - Formula: For some f(x) like f(x) = 3x^2 + x + 4, then f(k) = (3)(k^2) + k + 4 for some constant k.
+          - For example, f(2) = (3)(2^2) + 2 + 4 = 18.
+      - If there is a term with x raised to a negative power, then x can't be 0 because this causes division by 0 which is undefined.
+        For example, if f(x) = x^-1, then f(0) = x^-1 = 1 / 0 = undefined.
+  - Nth derivative:
+      - Formula: For f(x) = kx^n for some constant k and some exponent n, then derivative f'(x) = knx^(n-1).
+        Continue to repeat this n times.
+          - For example, if f(x) = 3x^2 then f'(x) = (3)(2)(x^(2 - 1)) = 6x.
+  - Nth Derivative with X-value
+      - Formula: Do nth derivative (see nth derivative formula) then plug in for x (see x-value formula).
+      - If f(x) has a term with x raised to a negative exponent, then its nth derivative will as well.
+        So, like with the x-value calculation, x can't be 0 in this case because this causes division by zero which is undefined.
+          - For example, if f(x) = x^-1, then f'(x) = -x^-2, then f'(0) = -0^-2 = -1 / 0^2 = -1 / 0 = undefined.
+  - Indefinite Integral
+      - Formula: For f(x) = kx^n for some constant k, some exponent n that is not -1, then integral F(x) = kx^(n + 1) / (n + 1) + C where C is some constant.
+          - For example, if f(x) = 3x^2 then F(x) = x^3 + C.
+      - Formula: For f(x) = kx^-1 for some constant k, then integral F(x) = kln(|x|) + C where C is some constant.
+          - For example, if f(x) = 3x^-1 then F(x) = (3)ln(|x|) + C = 3ln(|x|) + C.
+  - Definite Integral
+      - Formula: For f(x) with indefinite integral F(x) then F(x) from x = lower bound a to x = upper bound b, then the definite integral = F(b) - F(a).
+      - If f(x) contains a term with x raised to a negative exponent that is not -1, then 0 can't be in the range of [a, b].
+        This causes the definite integral to be undefined due to the result being undefined at x = 0 due to division by zero.
+          - For example, for f(x) = 3x^-2 with a = -2 and b = 2, then F(x) = -3 / x + C and F(0) = -3 / 0 + C = undefined.
+      - If f(x) contains a term with x raised to the exponent -1, then 0 can't be in the range of [a, b].
+        This causes the definite integral to be undefined due to the result being undefined at x = 0 due to taking the natural logarithm of 0 which is undefined.
+          - For example, for f(x) = 3x^-1 with a = -2 and b = 2, then F(x) = 3ln(|x|) + C and F(0) = 3ln(|0|) + C = undefined.
+
+  
